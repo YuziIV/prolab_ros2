@@ -1,0 +1,2 @@
+Invoking command in '/home/ubuntu/ros2_ws/build/my_robot_bringup': /usr/bin/cmake --build /home/ubuntu/ros2_ws/build/my_robot_bringup -- -j16 -l16
+Invoked command in '/home/ubuntu/ros2_ws/build/my_robot_bringup' returned '2': /usr/bin/cmake --build /home/ubuntu/ros2_ws/build/my_robot_bringup -- -j16 -l16
