@@ -1,0 +1,9 @@
+-- Install configuration: ""
+-- Up-to-date: /home/ubuntu/ros2_ws/install/my_robot_bringup/share/my_robot_bringup//launch
+-- Up-to-date: /home/ubuntu/ros2_ws/install/my_robot_bringup/share/my_robot_bringup//launch/gazebo.launch.py
+-- Up-to-date: /home/ubuntu/ros2_ws/install/my_robot_bringup/share/my_robot_bringup//launch/spawn_turtlebot3.launch.py
+[31mCMake Error at cmake_install.cmake:46 (file):
+  file INSTALL cannot find "/home/ubuntu/ros2_ws/src/my_robot_bringup/urdf":
+  No such file or directory.
+
+[0m
