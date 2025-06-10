@@ -22,6 +22,8 @@ def generate_launch_description():
     # Define paths
     urdf_file = os.path.join(os.getenv('HOME'), 'ros2_ws', 'src', 'my_robot_bringup', 'urdf', 'turtlebot3', 'turtlebot3_burger.urdf.xacro')
     world_file = os.path.join(pkg_bringup, 'worlds', 'playground.world')
+    map_file = os.path.join(pkg_bringup, 'maps', 'playground_map.yaml')
+    
     
     # Nodes
 
@@ -63,7 +65,16 @@ def generate_launch_description():
             'y_pose': y_pose
         }.items()
     )
-    
+    map_server = Node(
+        package='nav2_map_server',
+        executable='map_server',
+        name='map_server',
+        output='screen',
+        parameters=[{
+            # Nav2 convention:
+            'yaml_filename': map_file
+        }]
+    )
     rviz= Node(
         package='rviz2',
         executable='rviz2',
@@ -73,7 +84,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        
+        map_server,
         gzserver_cmd,
         gzclient_cmd,        
         robot_state_publisher_cmd,
