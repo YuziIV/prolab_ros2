@@ -41,6 +41,7 @@ RUN sudo apt update && sudo apt install -y \
     ros-humble-joint-state-publisher-gui \
     ros-humble-gazebo-ros-pkgs \
     ros-humble-turtlebot3 \
+    ros-humble-slam-toolbox \
     ros-humble-turtlebot3-gazebo \
     ros-humble-turtlebot3-bringup \
     ros-humble-turtlebot3-teleop \
