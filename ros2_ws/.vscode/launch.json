@@ -10,7 +10,8 @@
         "launch",
         "turtlebot3_full_bringup",
         "full_bringup.launch.py",
-        "map:=/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml"
+        "-d"
+        "-a"
       ],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",

@@ -2,7 +2,7 @@ from sympy import true
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 import os
@@ -19,11 +19,17 @@ def generate_launch_description():
     #map_file = LaunchConfiguration('map', default=os.path.join(pkg_bringup, 'maps', 'playground_map.yaml'))
     #map_file = LaunchConfiguration('map', default = os.path.expanduser('/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml'))
     #map_file = "/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml"
-    map_file = LaunchConfiguration('map', default=os.path.expanduser('~/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml'))
+    map_file = LaunchConfiguration('map', default=os.path.expanduser('~/playground_map.yaml'))
     print (f"Map file path: {map_file}")
     dummy_context = launch.LaunchContext()
     resolved_map_path = perform_substitutions(dummy_context, [map_file])
     print("✅ Resolved map path:", resolved_map_path)
+    declare_map = DeclareLaunchArgument(
+        'map',
+        default_value=TextSubstitution(text=os.path.expanduser('~/playground_map.yaml')),
+        description='Absolute path to map YAML file'
+    )
+        
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
     gazebo_launch = os.path.join(gazebo_pkg, 'launch')
@@ -93,6 +99,7 @@ def generate_launch_description():
     return LaunchDescription([
         gzserver,
         gzclient,
+        declare_map,
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
         rviz,
