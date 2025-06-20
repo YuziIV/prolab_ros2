@@ -25,7 +25,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(xacro REQUIRED)
 
-install(DIRECTORY launch worlds
+install(DIRECTORY launch worlds maps scripts 
   DESTINATION share/${PROJECT_NAME}/
 )
 ament_package()

@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ROS2: Debug Full Bringup (via ros2 CLI)",
+      "type": "python",
+      "request": "launch",
+      "program": "/opt/ros/humble/bin/ros2",
+      "args": [
+        "launch",
+        "turtlebot3_full_bringup",
+        "full_bringup.launch.py",
+        "map:=/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "stopOnEntry": false,
+      "env": {
+        "RCUTILS_LOGGING_BUFFERED_STREAM": "1"
+      }
+    }
+  ]
+}

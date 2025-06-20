@@ -1,3 +1,7 @@
+#This launch file sets up the SLAM mapping environment for a robot in Gazebo.
+#!!!!it is only being used for SLAM mapping and to create a MAP, not navigation.!!!!
+
+
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
