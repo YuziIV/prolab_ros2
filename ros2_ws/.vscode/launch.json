@@ -38,6 +38,27 @@
       "env": {
         "RCUTILS_LOGGING_BUFFERED_STREAM": "1"
       }
-    }
+    },
+    // {
+      // "name": "DEBUG Full Bringup MAP",
+      // "type": "python",
+      // "request": "launch",
+      // "program": "/opt/ros/humble/bin/ros2",
+      // "args": [
+        // "launch",
+        // "turtlebot3_full_bringup",
+        // "full_bringup.launch.py",
+        // "-d",
+        // "-a",
+        // "map:=/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml"
+      // ],
+      // "console": "integratedTerminal",
+      // "cwd": "${workspaceFolder}",
+      // "justMyCode": false,
+      // "stopOnEntry": false,
+      // "env": {
+        // "RCUTILS_LOGGING_BUFFERED_STREAM": "1"
+      // }
+    // },
   ]
 }
