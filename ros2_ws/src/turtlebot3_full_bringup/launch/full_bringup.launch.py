@@ -9,27 +9,17 @@ import os
 import launch
 from launch.utilities import perform_substitutions
 
+TURTLEBOT3_MODEL = os.environ['TURTLEBOT3_MODEL']
+
 def generate_launch_description():
     pkg_bringup = FindPackageShare('turtlebot3_full_bringup').find('turtlebot3_full_bringup')
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
     
     # Define paths
     world_file = os.path.join(pkg_bringup, 'worlds', 'playground.world')
-    #map_file = os.path.join(pkg_bringup, 'maps', 'playground_map.yaml')
-    #map_file = LaunchConfiguration('map', default=os.path.join(pkg_bringup, 'maps', 'playground_map.yaml'))
-    #map_file = LaunchConfiguration('map', default = os.path.expanduser('/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml'))
-    #map_file = "/home/ubuntu/ros2_ws/src/turtlebot3_full_bringup/maps/playground_map.yaml"
-    map_file = LaunchConfiguration('map', default=os.path.expanduser('~/playground_map.yaml'))
-    print (f"Map file path: {map_file}")
-    dummy_context = launch.LaunchContext()
-    resolved_map_path = perform_substitutions(dummy_context, [map_file])
-    print("✅ Resolved map path:", resolved_map_path)
-    declare_map = DeclareLaunchArgument(
-        'map',
-        default_value=TextSubstitution(text=os.path.expanduser('~/playground_map.yaml')),
-        description='Absolute path to map YAML file'
-    )
-        
+    default_map_path = os.path.join(pkg_bringup, 'maps', 'playground_map.yaml')
+    map_file = LaunchConfiguration('map', default=default_map_path)
+      
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
     gazebo_launch = os.path.join(gazebo_pkg, 'launch')
@@ -37,6 +27,7 @@ def generate_launch_description():
     # Nav2 Launch
     nav2_pkg = FindPackageShare('turtlebot3_navigation2').find('turtlebot3_navigation2')
     nav2_launch = os.path.join(nav2_pkg, 'launch', 'navigation2.launch.py')
+    
     # Robot State Publisher
     robostate_package = FindPackageShare('turtlebot3_gazebo').find('turtlebot3_gazebo')
     robostate_launch = os.path.join(robostate_package,'launch','robot_state_publisher.launch.py')
@@ -78,15 +69,7 @@ def generate_launch_description():
             'use_sim_time': use_sim_time
         }.items()
     )
-
-    rviz = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        parameters=[{'use_sim_time': use_sim_time}],
-    )
-    
+        
     nav2 = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(nav2_launch),
         launch_arguments={
@@ -95,13 +78,28 @@ def generate_launch_description():
             'autostart': 'true',
         }.items()
     )
+    filter_node = Node(
+        package='turtlebot3_full_bringup',
+        executable='kalman_filter',
+        name='kalman_filter',
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
+
+    ground_truth_publisher = Node(
+        package='turtlebot3_full_bringup',
+        executable='ground_truth',
+        name='ground_truth',
+        output='screen',
+        parameters=[{'use_sim_time': True}]
+    )
     
     return LaunchDescription([
+        nav2,
         gzserver,
         gzclient,
-        declare_map,
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
-        rviz,
-        nav2,
+        filter_node,
+        ground_truth_publisher
         ])

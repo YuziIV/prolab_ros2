@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "ROS2: Debug Full Bringup (via ros2 CLI)",
+      "name": "DEBUG Full Bringup",
       "type": "python",
       "request": "launch",
       "program": "/opt/ros/humble/bin/ros2",
@@ -10,8 +10,26 @@
         "launch",
         "turtlebot3_full_bringup",
         "full_bringup.launch.py",
-        "-d"
+        "-d",
         "-a"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": false,
+      "stopOnEntry": false,
+      "env": {
+        "RCUTILS_LOGGING_BUFFERED_STREAM": "1"
+      }
+    },
+    {
+      "name": "BLANK Full Bringup",
+      "type": "python",
+      "request": "launch",
+      "program": "/opt/ros/humble/bin/ros2",
+      "args": [
+        "launch",
+        "turtlebot3_full_bringup",
+        "full_bringup.launch.py"
       ],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
