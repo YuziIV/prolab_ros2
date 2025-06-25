@@ -41,7 +41,6 @@ install(TARGETS
 
 # === INSTALL NON-C++ ASSETS ===
 install(DIRECTORY
-  #assets
   launch
   maps
   rviz

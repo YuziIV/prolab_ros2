@@ -22,7 +22,6 @@ def generate_launch_description():
     map_file = LaunchConfiguration(
         'map', default=os.path.join(pkg_bringup, 'maps', 'playground_map.yaml')
     )
-    #urdf_file = os.path.join(pkg_bringup, 'assets', 'model.sdf')
 
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
@@ -33,7 +32,7 @@ def generate_launch_description():
     nav2_param = os.path.join(nav2_pkg, 'param')
     nav2_bringup_pkg = FindPackageShare('nav2_bringup').find('nav2_bringup')
     nav2_bringup_launch = os.path.join(nav2_bringup_pkg, 'launch')
-    #nav2_launch = os.path.join(nav2_pkg, 'launch', 'navigation2.launch.py')
+
 
     # RViz Config
     rviz_config_dir = os.path.join(pkg_bringup, 'rviz', 'rviz.rviz')
@@ -113,19 +112,6 @@ def generate_launch_description():
             'params_file': param_dir,
         }.items(),
     )
-
-    # start_gazebo_ros_spawner_cmd = Node(
-    #     package='gazebo_ros',
-    #     executable='spawn_entity.py',
-    #     arguments=[
-    #         '-entity', TURTLEBOT3_MODEL,
-    #         '-file', urdf_file,
-    #         '-x', x_pose,
-    #         '-y', y_pose,
-    #         '-z', '0.01',
-    #     ],
-    #     output='screen',
-    # )
     
     filter_node = Node(
         package='turtlebot3_full_bringup',
@@ -160,9 +146,8 @@ def generate_launch_description():
         gzserver,
         gzclient,
         spawn_turtlebot_cmd,
-        #start_gazebo_ros_spawner_cmd,
         robot_state_publisher_cmd,
         filter_node,
-        #ground_truth_publisher,
+        ground_truth_publisher,
         ]
     )
