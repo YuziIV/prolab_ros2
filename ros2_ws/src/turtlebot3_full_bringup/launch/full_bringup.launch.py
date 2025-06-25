@@ -22,7 +22,6 @@ def generate_launch_description():
     map_file = LaunchConfiguration(
         'map', default=os.path.join(pkg_bringup, 'maps', 'playground_map_hq.yaml')
     )
-    urdf_file = os.path.join(pkg_bringup, 'assets', 'model.sdf')
     
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
@@ -33,12 +32,6 @@ def generate_launch_description():
     nav2_param = os.path.join(nav2_pkg, 'param')
     nav2_bringup_pkg = FindPackageShare('nav2_bringup').find('nav2_bringup')
     nav2_bringup_launch = os.path.join(nav2_bringup_pkg, 'launch')
-
-    # Cartographer SLAM Launch
-    # This assumes you have turtlebot3_cartographer installed
-    cartographer_pkg = FindPackageShare('turtlebot3_cartographer').find('turtlebot3_cartographer')
-    cartographer_launch_dir = os.path.join(cartographer_pkg, 'launch')
-    cartographer_config_dir = os.path.join(cartographer_pkg, 'config')
     
     # RViz Config
     rviz_config_dir = os.path.join(pkg_bringup, 'rviz', 'rviz.rviz')
@@ -134,29 +127,6 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
     )
-    start_gazebo_ros_spawner_cmd = Node(
-        package='gazebo_ros',
-        executable='spawn_entity.py',
-        arguments=[
-            '-entity', TURTLEBOT3_MODEL,
-            '-file', urdf_file,
-            '-x', x_pose,
-            '-y', y_pose,
-            '-z', '0.01',
-        ],
-        output='screen',
-    )
-    cartographer_node = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(os.path.join(cartographer_launch_dir, 'cartographer.launch.py')),
-        launch_arguments={
-            'use_sim_time': use_sim_time,
-            'turtlebot3_model': TURTLEBOT3_MODEL,
-            'map_file': map_file, # Not strictly used by cartographer, but good to pass
-            'configuration_basename': 'turtlebot3_lds_2d.lua', # Or 'turtlebot3_waffle_pi.lua' depending on your model
-            'configuration_directory': cartographer_config_dir,
-            'start_rviz': 'false', # We launch our own RViz
-        }.items(),
-    )
 
     
     return LaunchDescription(
@@ -169,7 +139,5 @@ def generate_launch_description():
         robot_state_publisher_cmd,
         filter_node,
         ground_truth_publisher,
-        #start_gazebo_ros_spawner_cmd,
-        #cartographer_node,
         ]
     )
