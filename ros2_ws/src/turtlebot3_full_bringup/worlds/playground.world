@@ -3465,5 +3465,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
         <view_controller>orbit</view_controller>
       </camera>
     </gui>
+    <plugin name="gazebo_ros" filename="libgazebo_ros_init.so"/>
+    <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so"/>
   </world>
 </sdf>

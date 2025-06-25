@@ -22,6 +22,7 @@ def generate_launch_description():
     map_file = LaunchConfiguration(
         'map', default=os.path.join(pkg_bringup, 'maps', 'playground_map.yaml')
     )
+    #urdf_file = os.path.join(pkg_bringup, 'assets', 'model.sdf')
 
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
@@ -52,7 +53,6 @@ def generate_launch_description():
 
     x_pose = LaunchConfiguration('x_pose', default='-2.0')
     y_pose = LaunchConfiguration('y_pose', default='-0.5')
-    yaw_pose = LaunchConfiguration('yaw_pose', default='0.0')
     
     # Parameters
     param_file_name = TURTLEBOT3_MODEL + '.yaml'
@@ -89,6 +89,7 @@ def generate_launch_description():
         launch_arguments={'x_pose': x_pose, 'y_pose': y_pose}.items(),
     )
 
+
     robot_state_publisher_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(robostate_launch),
         launch_arguments={'use_sim_time': use_sim_time}.items(),
@@ -110,14 +111,22 @@ def generate_launch_description():
             'map': map_file,
             'use_sim_time': use_sim_time,
             'params_file': param_dir,
-            # Pass initial pose arguments to Nav2's bringup_launch.py
-            'set_initial_pose': 'true',  # This enables the initial pose publisher
-            'x': x_pose,
-            'y': y_pose,
-            'yaw': yaw_pose,
         }.items(),
     )
 
+    # start_gazebo_ros_spawner_cmd = Node(
+    #     package='gazebo_ros',
+    #     executable='spawn_entity.py',
+    #     arguments=[
+    #         '-entity', TURTLEBOT3_MODEL,
+    #         '-file', urdf_file,
+    #         '-x', x_pose,
+    #         '-y', y_pose,
+    #         '-z', '0.01',
+    #     ],
+    #     output='screen',
+    # )
+    
     filter_node = Node(
         package='turtlebot3_full_bringup',
         executable='kalman_filter',
@@ -149,10 +158,11 @@ def generate_launch_description():
         map_server,
         rviz,
         gzserver,
-        #gzclient,
+        gzclient,
         spawn_turtlebot_cmd,
+        #start_gazebo_ros_spawner_cmd,
         robot_state_publisher_cmd,
         filter_node,
-        ground_truth_publisher,
+        #ground_truth_publisher,
         ]
     )

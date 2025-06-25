@@ -18,7 +18,6 @@ FilterNode::FilterNode() : Node("filter_node")
 
 void FilterNode::predict(double dt)
 {
-    A_ = Eigen::MatrixXd::Identity(6, 6);
     A_(0, 2) = dt;
     A_(1, 3) = dt;
     A_(0, 4) = 0.5 * dt * dt;

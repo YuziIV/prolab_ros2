@@ -6,7 +6,7 @@
   <version>0.0.1</version>
   <description>Full bringup for TurtleBot3 with Gazebo, Nav2 and RViz2</description>
 
-  <maintainer email="muster@technikum-wien.at">omen</maintainer>
+  <maintainer email="re23m017@technikum-wien.at">omen</maintainer>
   <license>MIT</license>
 
   <!-- Build system -->
@@ -15,16 +15,17 @@
   <!-- Dependencies for your C++ code -->
   <depend>rclcpp</depend>
   <depend>sensor_msgs</depend>
-  <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>gazebo_msgs</depend>
   <depend>message_filters</depend>
   <depend>eigen</depend>
-
+  <build_depend>nav_msgs</build_depend>
+  
   <!-- Dependencies used by launch files -->
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>turtlebot3_gazebo</exec_depend>
   <exec_depend>xacro</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
 
   <!-- Test dependencies -->
   <test_depend>ament_copyright</test_depend>
@@ -36,3 +37,5 @@
     <build_type>ament_cmake</build_type>
   </export>
 </package>
+
+
