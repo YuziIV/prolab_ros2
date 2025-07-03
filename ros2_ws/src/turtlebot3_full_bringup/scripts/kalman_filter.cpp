@@ -1,5 +1,6 @@
 #include "kalman_filter.h"
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp> // For converting Quaternion to RPY
+#include <cmath> // For std::cos, std::sin, std::fmod
 
 // Constructor
 FilterNode::FilterNode() : Node("filter_node")
@@ -19,10 +20,9 @@ FilterNode::FilterNode() : Node("filter_node")
 
     // Initialize state and covariance
     mu_ = Eigen::VectorXd::Zero(6); // mu_ represents mu_t-1 initially
-    u_t = Eigen::VectorXd::Zero(3); // Control input vector [linear_x, linear_y, angular_z]
     Sigma_ = Eigen::MatrixXd::Identity(6, 6) * 1e-9; // Sigma_ represents Sigma_t-1 initially
 
-    // Initialize process noise covariance (Qt in algorithm line 2)
+    // Initialize process noise covariance (Qt)
     Q_ = Eigen::MatrixXd::Identity(6, 6);
     Q_(0, 0) = 0.05; // x
     Q_(1, 1) = 0.05; // y
@@ -31,11 +31,11 @@ FilterNode::FilterNode() : Node("filter_node")
     Q_(4, 4) = 0.1;  // vy
     Q_(5, 5) = 0.05; // wz
 
-    // Initialize measurement noise covariance (R_imu_, which will be used to construct Qt in algorithm line 3)
+    // Initialize measurement noise covariance (R)
     R_imu_ = Eigen::MatrixXd::Identity(3, 3);
     R_imu_(0, 0) = 0.01; // wz (gyro_z) noise
-    R_imu_(1, 1) = 0.1;  // ax (accel_x) noise - Now assumed to measure vx
-    R_imu_(2, 2) = 0.1;  // ay (accel_y) noise - Now assumed to measure vy
+    R_imu_(1, 1) = 0.1;  // ax (accel_x) noise - Assumed to measure vx
+    R_imu_(2, 2) = 0.1;  // ay (accel_y) noise - Assumed to measure vy
 
     last_time_ = this->now();
     first_measurement_received_ = false;
@@ -43,63 +43,77 @@ FilterNode::FilterNode() : Node("filter_node")
     RCLCPP_INFO(this->get_logger(), "Kalman Filter Node Initialized!");
 }
 
-// Prediction Step (uses Odometry as motion model - now strictly linear)
+// Prediction Step (EKF approach for non-linear motion model)
 void FilterNode::predict(double dt, const nav_msgs::msg::Odometry::ConstSharedPtr odom_msg)
 {
-    // Extract linear and angular velocities from odometry
-    // IMPORTANT: For a STRICTLY LINEAR KF, we must assume these velocities
-    // are already in the GLOBAL (or odom) frame.
-    // If your /odom topic publishes velocities in the robot's BODY frame,
-    // this linear assumption will be very inaccurate!
-    double linear_x_odom_global = odom_msg->twist.twist.linear.x; // Assume this is global Vx
-    double linear_y_odom_global = odom_msg->twist.twist.linear.y; // Assume this is global Vy
+    // --- Extract local velocities from odometry ---
+    // The odometry message provides velocities in the robot's local frame (e.g., base_link).
+    double local_vx = odom_msg->twist.twist.linear.x;
+    double local_vy = odom_msg->twist.twist.linear.y;
     double angular_z_odom = odom_msg->twist.twist.angular.z;
 
-    // --- Linear Motion Model (At * mu_t-1 + Bt * ut) ---
-    // State: [x, y, theta, vx, vy, wz]^T
+    // Get the orientation from the previous state (μt-1)
+    // mu_ holds the state from the previous timestep before this prediction.
+    double theta_prev = mu_(2);
 
-    // At (State Transition Matrix)
-    Eigen::MatrixXd At = Eigen::MatrixXd::Identity(6, 6);
-    At(0, 3) = dt; // x_t = x_t-1 + vx_t-1 * dt
-    At(1, 4) = dt; // y_t = y_t-1 + vy_t-1 * dt
-    At(2, 5) = dt; // theta_t = theta_t-1 + wz_t-1 * dt
+    // --- Non-Linear Prediction for State (g(μt-1, ut)) ---
+    // We calculate the predicted state ¯μt based on the previous state and control inputs.
+    // This is Algorithm Line 1 of the EKF.
     
-    // The velocities (vx, vy, wz) in the state are NOT propagated from the previous step (At * mu_t-1)
-    // because they are directly updated by the control input (Bt * ut).
-    // So, set these diagonal elements to 0.
-    At(3, 3) = 0.0; 
-    At(4, 4) = 0.0; 
-    At(5, 5) = 0.0;
+    // Transform local velocities to global velocities using the previous orientation
+    double global_vx = local_vx * std::cos(theta_prev) - local_vy * std::sin(theta_prev);
+    double global_vy = local_vx * std::sin(theta_prev) + local_vy * std::cos(theta_prev);
 
-    // Bt (Control Input Matrix)
-    // Maps the 3-dimensional control input ut to the 6-dimensional state.
-    // ut = [linear_x_odom_global, linear_y_odom_global, angular_z_odom]^T
-    // Bt directly injects these values into the vx, vy, wz components of the state.
-    Eigen::MatrixXd Bt = Eigen::MatrixXd::Zero(6, 3);
-    Bt(3, 0) = 1.0; // ut(0) (linear_x_odom_global) goes to mu_(3) (vx)
-    Bt(4, 1) = 1.0; // ut(1) (linear_y_odom_global) goes to mu_(4) (vy)
-    Bt(5, 2) = 1.0; // ut(2) (angular_z_odom)       goes to mu_(5) (wz)
+    // Create a temporary vector for the predicted state ¯μt
+    Eigen::VectorXd mu_bar = Eigen::VectorXd::Zero(6);
 
-    // Populate the control input vector ut
-    u_t(0) = linear_x_odom_global;
-    u_t(1) = linear_y_odom_global;
-    u_t(2) = angular_z_odom;
-    
-    // Algorithm line 1: ¯μt = At μt−1 + Bt ut
-    // mu_ is mu_t-1 when entering predict, becomes ¯mu_t after this line
-    mu_ = At * mu_ + Bt * u_t;
+    // Predict new state based on OLD state and new GLOBAL velocities
+    // Note: The new velocities are not based on the old velocities, they are direct inputs.
+    mu_bar(0) = mu_(0) + mu_(3) * dt; // x_t = x_t-1 + vx_t-1 * dt
+    mu_bar(1) = mu_(1) + mu_(4) * dt; // y_t = y_t-1 + vy_t-1 * dt
+    mu_bar(2) = mu_(2) + mu_(5) * dt; // theta_t = theta_t-1 + wz_t-1 * dt
+    mu_bar(3) = global_vx;           // vx_t = transformed local vx
+    mu_bar(4) = global_vy;           // vy_t = transformed local vy
+    mu_bar(5) = angular_z_odom;      // wz_t = odom wz
+
+    // Update the main state vector to the predicted state ¯μt
+    mu_ = mu_bar;
 
     // Normalize theta to [-PI, PI]
     mu_(2) = std::fmod(mu_(2), 2 * M_PI);
     if (mu_(2) > M_PI) mu_(2) -= 2 * M_PI;
     if (mu_(2) < -M_PI) mu_(2) += 2 * M_PI;
 
-    // Algorithm line 2: ¯Σt = At Σt−1 AT + Qt (where Qt is process noise covariance Q_)
+    // --- Linearize Motion Model (Calculate Jacobian Gt) ---
+    // Since the prediction g(μ, u) is non-linear (depends on theta), we must linearize it
+    // by taking the partial derivative of g with respect to the state μ.
+    // Gt = ∂g / ∂μ | at μt-1
+    
+    Eigen::MatrixXd Gt = Eigen::MatrixXd::Identity(6, 6);
+    // Partial derivatives for x, y, theta predictions
+    Gt(0, 3) = dt;
+    Gt(1, 4) = dt;
+    Gt(2, 5) = dt;
+    
+    // Partial derivatives for vx, vy predictions with respect to theta
+    // ∂(vx_pred)/∂(theta_prev) = -local_vx*sin(theta_prev) - local_vy*cos(theta_prev)
+    // ∂(vy_pred)/∂(theta_prev) =  local_vx*cos(theta_prev) - local_vy*sin(theta_prev)
+    Gt(3, 2) = -local_vx * std::sin(theta_prev) - local_vy * std::cos(theta_prev);
+    Gt(4, 2) =  local_vx * std::cos(theta_prev) - local_vy * std::sin(theta_prev);
+
+    // The velocities are overwritten by the control input, so their dependence on previous velocities is zero.
+    Gt(3, 3) = 0.0;
+    Gt(4, 4) = 0.0;
+    Gt(5, 5) = 0.0;
+
+    // --- Predict Covariance (¯Σt) ---
+    // Algorithm line 2 of EKF: ¯Σt = Gt Σt−1 Gt^T + Qt
     // Sigma_ is Sigma_t-1 when entering predict, becomes ¯Sigma_t after this line
-    Sigma_ = At * Sigma_ * At.transpose() + Q_;
+    Sigma_ = Gt * Sigma_ * Gt.transpose() + Q_;
 
     RCLCPP_INFO(this->get_logger(), "Prediction: x=%.2f, y=%.2f, theta=%.2f, vx=%.2f, vy=%.2f, wz=%.2f", mu_(0), mu_(1), mu_(2), mu_(3), mu_(4), mu_(5));
 }
+
 
 // Correction Step (uses IMU data as measurement)
 void FilterNode::correct(const sensor_msgs::msg::Imu::ConstSharedPtr imu_msg)
@@ -170,6 +184,7 @@ void FilterNode::sensorCallback(const nav_msgs::msg::Odometry::ConstSharedPtr od
         // Initialize state (μt-1) with first odometry reading
         mu_(0) = odom_msg->pose.pose.position.x;
         mu_(1) = odom_msg->pose.pose.position.y;
+        
         tf2::Quaternion q(
             odom_msg->pose.pose.orientation.x,
             odom_msg->pose.pose.orientation.y,
@@ -179,8 +194,15 @@ void FilterNode::sensorCallback(const nav_msgs::msg::Odometry::ConstSharedPtr od
         double roll, pitch, yaw;
         m.getRPY(roll, pitch, yaw);
         mu_(2) = yaw;
-        mu_(3) = odom_msg->twist.twist.linear.x; // Assumed global Vx
-        mu_(4) = odom_msg->twist.twist.linear.y; // Assumed global Vy
+
+        // The first odom velocities are local, transform them to global for the initial state
+        double local_vx_init = odom_msg->twist.twist.linear.x;
+        double local_vy_init = odom_msg->twist.twist.linear.y;
+        double global_vx_init = local_vx_init * std::cos(yaw) - local_vy_init * std::sin(yaw);
+        double global_vy_init = local_vx_init * std::sin(yaw) + local_vy_init * std::cos(yaw);
+
+        mu_(3) = global_vx_init;
+        mu_(4) = global_vy_init;
         mu_(5) = odom_msg->twist.twist.angular.z;
 
         last_time_ = odom_msg->header.stamp;
@@ -212,7 +234,7 @@ void FilterNode::publishEstimatedPose(const rclcpp::Time& stamp)
 {
     geometry_msgs::msg::PoseWithCovarianceStamped output_pose;
     output_pose.header.stamp = stamp;
-    output_pose.header.frame_id = "odom"; // Or your desired fixed frame
+    output_pose.header.frame_id = "map"; // Or your desired fixed frame
 
     output_pose.pose.pose.position.x = mu_(0);
     output_pose.pose.pose.position.y = mu_(1);
