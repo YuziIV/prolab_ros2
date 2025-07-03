@@ -103,14 +103,22 @@ def generate_launch_description():
         }.items(),
     )
     
-    filter_node = Node(
+    ekf_filter_node = Node(
+        package='turtlebot3_full_bringup',
+        executable='extended_kalman_filter',
+        name='extended_kalman_filter',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
+    )
+
+    kf_filter_node = Node(
         package='turtlebot3_full_bringup',
         executable='kalman_filter',
         name='kalman_filter',
         output='screen',
         parameters=[{'use_sim_time': True}],
     )
-
+        
     ground_truth_publisher = Node(
         package='turtlebot3_full_bringup',
         executable='ground_truth',
@@ -134,10 +142,11 @@ def generate_launch_description():
         map_server,
         rviz,
         gzserver,
-        gzclient,
+        #gzclient,
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
-        filter_node,
+        #ekf_filter_node,
+        kf_filter_node,
         ground_truth_publisher,
         ]
     )

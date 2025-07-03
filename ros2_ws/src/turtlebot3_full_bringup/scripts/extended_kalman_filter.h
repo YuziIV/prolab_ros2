@@ -16,15 +16,9 @@ public:
 
 private:
     // Kalman Filter state and covariance
-    // mu_ represents μt-1, ¯μt, and μt depending on where it is in the algorithm flow
-    Eigen::VectorXd mu_;        
-    // u_t represents ut
-    Eigen::VectorXd u_t;        // Control input vector (linear_x, linear_y, angular_z)
-    // Sigma_ represents Σt-1, ¯Σt, and Σt
+    Eigen::VectorXd mu_;        // State vector (x, y, theta, vx, vy, wz)
     Eigen::MatrixXd Sigma_;     // Covariance matrix
-    // Q_ represents Qt (Process Noise Covariance) from algorithm line 2
     Eigen::MatrixXd Q_;         // Process noise covariance 
-    // R_imu_ is our internal measurement noise configuration, used to create Qt (Measurement Noise Covariance) from algorithm line 3
     Eigen::MatrixXd R_imu_;     // Measurement noise covariance
 
     rclcpp::Time last_time_;    // Last time stamp for prediction

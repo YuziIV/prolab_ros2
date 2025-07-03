@@ -15,16 +15,39 @@ find_package(gazebo_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(xacro REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_sensor_msgs REQUIRED)
 
 # === BUILD FILTER NODE ===
+add_executable(extended_kalman_filter scripts/extended_kalman_filter.cpp)
+ament_target_dependencies(extended_kalman_filter
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  message_filters
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_sensor_msgs
+  rclcpp
+  gazebo_msgs
+  geometry_msgs
+)
 add_executable(kalman_filter scripts/kalman_filter.cpp)
 ament_target_dependencies(kalman_filter
-  rclcpp
-  sensor_msgs
-  nav_msgs
   geometry_msgs
+  nav_msgs
+  sensor_msgs
   message_filters
-  Eigen3
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_sensor_msgs
+  rclcpp
+  gazebo_msgs
+  geometry_msgs
 )
 add_executable(ground_truth scripts/ground_truth.cpp)
 ament_target_dependencies(ground_truth
@@ -34,8 +57,9 @@ ament_target_dependencies(ground_truth
 )
 
 install(TARGETS
-  kalman_filter
   ground_truth
+  kalman_filter
+  extended_kalman_filter
   DESTINATION lib/${PROJECT_NAME}
 )
 
