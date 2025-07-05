@@ -34,32 +34,18 @@ public:
           tf_listener_(tf_buffer_),
           tf_broadcaster_(this)
     {
-        // Declare and get parameters
-        this->declare_parameter<int>("num_particles", 1000);
-        this->declare_parameter<std::string>("map_frame", "map");
-        this->declare_parameter<std::string>("odom_frame", "odom");
-        this->declare_parameter<std::string>("base_link_frame", "base_link");
-        this->declare_parameter<double>("initial_x", 0.0);
-        this->declare_parameter<double>("initial_y", 0.0);
-        this->declare_parameter<double>("initial_theta", 0.0);
-        this->declare_parameter<double>("odom_trans_noise", 0.05); // Noise for translation
-        this->declare_parameter<double>("odom_rot_noise", 0.01);  // Noise for rotation
-        this->declare_parameter<double>("laser_hit_std_dev", 0.2); // Standard deviation for laser hit measurement
-        this->declare_parameter<double>("laser_miss_likelihood", 0.01); // Likelihood for a laser miss
-        this->declare_parameter<double>("neff_resample_threshold_ratio", 0.5); // Threshold for Neff based re-initialization
-
-        num_particles_ = this->get_parameter("num_particles").as_int();
-        map_frame_ = this->get_parameter("map_frame").as_string();
-        odom_frame_ = this->get_parameter("odom_frame").as_string();
-        base_link_frame_ = this->get_parameter("base_link_frame").as_string();
-        initial_x_ = this->get_parameter("initial_x").as_double();
-        initial_y_ = this->get_parameter("initial_y").as_double();
-        initial_theta_ = this->get_parameter("initial_theta").as_double();
-        odom_trans_noise_ = this->get_parameter("odom_trans_noise").as_double();
-        odom_rot_noise_ = this->get_parameter("odom_rot_noise").as_double();
-        laser_hit_std_dev_ = this->get_parameter("laser_hit_std_dev").as_double();
-        laser_miss_likelihood_ = this->get_parameter("laser_miss_likelihood").as_double();
-        neff_resample_threshold_ratio_ = this->get_parameter("neff_resample_threshold_ratio").as_double();
+        num_particles_ = 1000;
+        map_frame_ = "map";
+        odom_frame_ = "odom";
+        base_link_frame_ = "base_link";
+        initial_x_ = 0.0;
+        initial_y_ = 0.0;
+        initial_theta_ = 0.0;
+        odom_trans_noise_ = 0.05;
+        odom_rot_noise_ = 0.01;
+        laser_hit_std_dev_ = 0.2;
+        laser_miss_likelihood_ = 0.01;
+        neff_resample_threshold_ratio_ = 0.5;
 
         // Initialize particles. `false` means initial localized spread.
         initializeParticles(false);
@@ -122,13 +108,6 @@ private:
     std::default_random_engine random_engine_; // Random number generator
 
     // --- Particle Filter Core Functions ---
-
-    /**
-     * @brief Initializes the particles.
-     * @param global_reinit If true, particles are spread uniformly across the map.
-     * If false, particles are spread normally around initial_x/y/theta.
-     * Global re-initialization requires the map to be loaded.
-     */
     void initializeParticles(bool global_reinit)
     {
         particles_.resize(num_particles_);
@@ -173,8 +152,6 @@ private:
             last_odom_msg_ = msg;
             return;
         }
-
-        // --- CORRECTED MOTION MODEL ---
         // Calculate the relative motion between the last and current odometry readings
         // This motion is expressed in the robot's base_link frame (local frame).
         tf2::Transform T_odom_to_base_last;
@@ -218,6 +195,7 @@ private:
         last_odom_msg_ = msg;
     }
 
+
     void mapCallback(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
     {
         map_msg_ = msg;
@@ -225,12 +203,6 @@ private:
                     map_msg_->info.resolution, map_msg_->info.width, map_msg_->info.height);
     }
 
-    /**
-     * @brief Gets the occupancy value from the loaded map at given global coordinates.
-     * @param x X-coordinate in map frame.
-     * @param y Y-coordinate in map frame.
-     * @return Occupancy value (0: free, 100: occupied, -1: unknown/out of bounds).
-     */
     int getMapOccupancy(double x, double y)
     {
         if (!map_msg_) {
@@ -374,11 +346,6 @@ private:
         publishRobotPose(msg->header.stamp);
     }
 
-    /**
-     * @brief Resamples particles using Low Variance Resampling.
-     * This process selects particles based on their weights, effectively "deleting" low-weight particles
-     * and "duplicating" high-weight particles for the next generation.
-     */
     void resampleParticles()
     {
         std::vector<Particle> new_particles(num_particles_);
@@ -486,10 +453,6 @@ private:
         particle_cloud_pub_->publish(particle_cloud_msg);
     }
 
-    /**
-     * @brief Service callback to trigger a global re-initialization of particles.
-     * This is useful for "kidnapped robot" scenarios or when localization is lost.
-     */
     void globalLocalizationService(
         const std::shared_ptr<std_srvs::srv::Empty::Request> request,
         std::shared_ptr<std_srvs::srv::Empty::Response> response)

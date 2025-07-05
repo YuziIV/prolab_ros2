@@ -24,6 +24,7 @@
   <depend>message_filters</depend>
   <depend>eigen</depend>
   <build_depend>nav_msgs</build_depend>
+  <build_depend>nav2_msgs</build_depend>
   
   <!-- Dependencies used by launch files -->
   <exec_depend>gazebo_ros</exec_depend>

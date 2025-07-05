@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(nav2_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(gazebo_msgs REQUIRED)
 find_package(message_filters REQUIRED)
@@ -20,6 +21,8 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 # === BUILD FILTER NODE ===
 add_executable(extended_kalman_filter scripts/extended_kalman_filter.cpp)
 ament_target_dependencies(extended_kalman_filter
@@ -72,11 +75,25 @@ ament_target_dependencies(particle_filter
   geometry_msgs
 )
 
+add_executable(nav2_goals scripts/nav2_goals.cpp)
+ament_target_dependencies(nav2_goals
+  rclcpp
+  rclcpp_action
+  geometry_msgs
+  nav2_msgs
+  tf2
+  tf2_geometry_msgs
+  yaml-cpp
+)
+
+target_link_libraries(nav2_goals yaml-cpp)
+
 install(TARGETS
   particle_filter
   ground_truth
   kalman_filter
   extended_kalman_filter
+  nav2_goals
   DESTINATION lib/${PROJECT_NAME}
 )
 

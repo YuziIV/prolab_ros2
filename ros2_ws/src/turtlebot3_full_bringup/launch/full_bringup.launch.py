@@ -22,6 +22,7 @@ def generate_launch_description():
     map_file = LaunchConfiguration(
         'map', default=os.path.join(pkg_bringup, 'maps', 'playground_map_hq.yaml')
     )
+    goals_yaml_path = os.path.join(pkg_bringup, 'scripts' , 'goals.yaml')
     
     # Gazebo Launch
     gazebo_pkg = FindPackageShare('gazebo_ros').find('gazebo_ros')
@@ -100,6 +101,7 @@ def generate_launch_description():
             'map': map_file,
             'use_sim_time': use_sim_time,
             'params_file': param_dir,
+            'amcl': 'false',
         }.items(),
     )
     
@@ -144,8 +146,16 @@ def generate_launch_description():
         parameters=[{'use_sim_time': use_sim_time}],
         output='screen',
     )
-
     
+    send_goals = Node(
+        package='turtlebot3_full_bringup',
+        executable='nav2_goals',
+        name='nav2_goals',
+        output='screen',
+        parameters=[{'waypoints_file': goals_yaml_path}],
+        arguments=['--ros-args', '--log-level', 'goal_sender:=debug'],
+    )
+
     return LaunchDescription(
         [
         map_server,
@@ -154,9 +164,10 @@ def generate_launch_description():
         #gzclient,
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
-        #ekf_filter_node,
-        #kf_filter_node,
+        ekf_filter_node,
+        kf_filter_node,
         pf_filter_node,
         ground_truth_publisher,
+        send_goals,
         ]
     )
