@@ -88,12 +88,25 @@ ament_target_dependencies(nav2_goals
 
 target_link_libraries(nav2_goals yaml-cpp)
 
+add_executable(pose_evaluator_node scripts/pose_evaluator_node.cpp)
+ament_target_dependencies(pose_evaluator_node
+    rclcpp
+    nav_msgs
+    geometry_msgs
+    sensor_msgs
+    message_filters
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
+)
+
 install(TARGETS
   particle_filter
   ground_truth
   kalman_filter
   extended_kalman_filter
   nav2_goals
+  pose_evaluator_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

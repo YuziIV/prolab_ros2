@@ -153,7 +153,14 @@ def generate_launch_description():
         name='nav2_goals',
         output='screen',
         parameters=[{'waypoints_file': goals_yaml_path}],
-        arguments=['--ros-args', '--log-level', 'goal_sender:=debug'],
+    )
+    
+    PoseEvaluatorNode = Node(
+        package='turtlebot3_full_bringup',
+        executable='pose_evaluator_node',
+        name='pose_evaluator_node',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
     )
 
     return LaunchDescription(
@@ -161,7 +168,7 @@ def generate_launch_description():
         map_server,
         rviz,
         gzserver,
-        #gzclient,
+        gzclient,
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
         ekf_filter_node,
@@ -169,5 +176,6 @@ def generate_launch_description():
         pf_filter_node,
         ground_truth_publisher,
         send_goals,
+        PoseEvaluatorNode,
         ]
     )
