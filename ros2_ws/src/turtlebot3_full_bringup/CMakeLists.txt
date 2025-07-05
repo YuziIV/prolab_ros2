@@ -19,7 +19,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
-
+find_package(std_srvs REQUIRED)
 # === BUILD FILTER NODE ===
 add_executable(extended_kalman_filter scripts/extended_kalman_filter.cpp)
 ament_target_dependencies(extended_kalman_filter
@@ -56,7 +56,24 @@ ament_target_dependencies(ground_truth
   geometry_msgs
 )
 
+add_executable(particle_filter scripts/particle_filter.cpp)
+ament_target_dependencies(particle_filter
+  std_srvs
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  message_filters
+  tf2
+  tf2_ros
+  tf2_geometry_msgs
+  tf2_sensor_msgs
+  rclcpp
+  gazebo_msgs
+  geometry_msgs
+)
+
 install(TARGETS
+  particle_filter
   ground_truth
   kalman_filter
   extended_kalman_filter

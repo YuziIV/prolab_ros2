@@ -118,7 +118,15 @@ def generate_launch_description():
         output='screen',
         parameters=[{'use_sim_time': True}],
     )
-        
+    
+    pf_filter_node = Node(
+        package='turtlebot3_full_bringup',
+        executable='particle_filter',
+        name='particle_filter',
+        output='screen',
+        parameters=[{'use_sim_time': True}],
+    )
+            
     ground_truth_publisher = Node(
         package='turtlebot3_full_bringup',
         executable='ground_truth',
@@ -126,6 +134,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{'use_sim_time': True}],
     )
+    
     
     rviz = Node(
         package='rviz2',
@@ -146,7 +155,8 @@ def generate_launch_description():
         spawn_turtlebot_cmd,
         robot_state_publisher_cmd,
         #ekf_filter_node,
-        kf_filter_node,
+        #kf_filter_node,
+        pf_filter_node,
         ground_truth_publisher,
         ]
     )
