@@ -8,7 +8,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2/LinearMath/Quaternion.h"
-#include "tf2/LinearMath/Matrix3x3.h"
+#include "tf2/LinearMath/Matrix3x3.h" // Needed for tf2::Matrix3x3
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "std_srvs/srv/empty.hpp" // Required for global localization service
 
@@ -44,7 +44,7 @@ public:
         this->declare_parameter<double>("initial_theta", 0.0);
         this->declare_parameter<double>("odom_trans_noise", 0.05); // Noise for translation
         this->declare_parameter<double>("odom_rot_noise", 0.01);  // Noise for rotation
-        this->declare_parameter<double>("laser_hit_std_dev", 0.1); // Standard deviation for laser hit measurement
+        this->declare_parameter<double>("laser_hit_std_dev", 0.2); // Standard deviation for laser hit measurement
         this->declare_parameter<double>("laser_miss_likelihood", 0.01); // Likelihood for a laser miss
         this->declare_parameter<double>("neff_resample_threshold_ratio", 0.5); // Threshold for Neff based re-initialization
 
@@ -62,7 +62,6 @@ public:
         neff_resample_threshold_ratio_ = this->get_parameter("neff_resample_threshold_ratio").as_double();
 
         // Initialize particles. `false` means initial localized spread.
-        // This will be overridden by a global spread if the map is loaded and the service is called.
         initializeParticles(false);
 
         // Subscribers
@@ -113,7 +112,7 @@ private:
     rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;
     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr particle_cloud_pub_;
-    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr global_localization_service_; // Global localization service
+    rclcpp::Service<std_srvs::srv::Empty>::SharedPtr global_localization_service_;
     rclcpp::TimerBase::SharedPtr particle_cloud_timer_;
 
     tf2_ros::Buffer tf_buffer_;
@@ -175,36 +174,44 @@ private:
             return;
         }
 
-        // Calculate odometry motion difference
-        double dx = msg->pose.pose.position.x - last_odom_msg_->pose.pose.position.x;
-        double dy = msg->pose.pose.position.y - last_odom_msg_->pose.pose.position.y;
+        // --- CORRECTED MOTION MODEL ---
+        // Calculate the relative motion between the last and current odometry readings
+        // This motion is expressed in the robot's base_link frame (local frame).
+        tf2::Transform T_odom_to_base_last;
+        tf2::Transform T_odom_to_base_current;
 
-        tf2::Quaternion q_last, q_current;
-        tf2::fromMsg(last_odom_msg_->pose.pose.orientation, q_last);
-        tf2::fromMsg(msg->pose.pose.orientation, q_current);
+        tf2::fromMsg(last_odom_msg_->pose.pose, T_odom_to_base_last);
+        tf2::fromMsg(msg->pose.pose, T_odom_to_base_current);
 
-        tf2::Matrix3x3 m_last(q_last);
-        tf2::Matrix3x3 m_current(q_current);
+        // T_relative_motion represents the motion of the robot's base_link from its previous pose
+        // to its current pose, expressed in the *previous base_link frame*.
+        tf2::Transform T_relative_motion = T_odom_to_base_last.inverse() * T_odom_to_base_current;
 
-        double roll_last, pitch_last, yaw_last;
-        double roll_current, pitch_current, yaw_current;
-        m_last.getRPY(roll_last, pitch_last, yaw_last);
-        m_current.getRPY(roll_current, pitch_current, yaw_current);
+        double delta_x_local = T_relative_motion.getOrigin().x();
+        double delta_y_local = T_relative_motion.getOrigin().y();
 
-        double d_theta = yaw_current - yaw_last;
+        // Corrected: Extract yaw from the relative motion quaternion
+        tf2::Matrix3x3 m_relative(T_relative_motion.getRotation());
+        double roll_relative, pitch_relative, delta_theta_local;
+        m_relative.getRPY(roll_relative, pitch_relative, delta_theta_local);
 
-        // Apply motion model to each particle
-        std::normal_distribution<double> trans_noise(0.0, odom_trans_noise_);
+
+        // Add noise to these local deltas
+        std::normal_distribution<double> trans_noise_x(0.0, odom_trans_noise_);
+        std::normal_distribution<double> trans_noise_y(0.0, odom_trans_noise_);
         std::normal_distribution<double> rot_noise(0.0, odom_rot_noise_);
 
         for (auto& p : particles_) {
-            // Transform dx, dy into the particle's local frame
-            double local_dx = dx * std::cos(p.theta) + dy * std::sin(p.theta);
-            double local_dy = -dx * std::sin(p.theta) + dy * std::cos(p.theta);
+            // Apply the noisy local motion to each particle's pose in the map frame.
+            // The local motion (noisy_delta_x_local, noisy_delta_y_local) needs to be rotated
+            // by the particle's current orientation (p.theta) to be added to its global map coordinates.
+            double noisy_delta_x_local = delta_x_local + trans_noise_x(random_engine_);
+            double noisy_delta_y_local = delta_y_local + trans_noise_y(random_engine_);
+            double noisy_delta_theta_local = delta_theta_local + rot_noise(random_engine_);
 
-            p.x += local_dx + trans_noise(random_engine_);
-            p.y += local_dy + trans_noise(random_engine_);
-            p.theta += d_theta + rot_noise(random_engine_);
+            p.x += noisy_delta_x_local * std::cos(p.theta) - noisy_delta_y_local * std::sin(p.theta);
+            p.y += noisy_delta_x_local * std::sin(p.theta) + noisy_delta_y_local * std::cos(p.theta);
+            p.theta += noisy_delta_theta_local;
             p.theta = fmod(p.theta + M_PI, 2 * M_PI) - M_PI; // Normalize angle to [-PI, PI]
         }
 
@@ -216,8 +223,6 @@ private:
         map_msg_ = msg;
         RCLCPP_INFO(this->get_logger(), "Map received! Resolution: %.3f m, Width: %d, Height: %d",
                     map_msg_->info.resolution, map_msg_->info.width, map_msg_->info.height);
-        // Optional: If you want to re-initialize globally once the map is received (e.g., if map server starts after this node)
-        // initializeParticles(true);
     }
 
     /**
@@ -291,6 +296,7 @@ private:
                                 base_to_laser_tf.transform.rotation.y,
                                 base_to_laser_tf.transform.rotation.z,
                                 base_to_laser_tf.transform.rotation.w),
+
                 tf2::Vector3(base_to_laser_tf.transform.translation.x,
                             base_to_laser_tf.transform.translation.y,
                             base_to_laser_tf.transform.translation.z));
@@ -501,7 +507,6 @@ private:
 
 int main(int argc, char * argv[])
 {
-    // Corrected rclcpp::init call to include argv
     rclcpp::init(argc, argv);
     auto node = std::make_shared<ParticleFilterLocalization>();
     rclcpp::spin(node);
