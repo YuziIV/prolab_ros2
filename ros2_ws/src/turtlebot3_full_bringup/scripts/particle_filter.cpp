@@ -179,9 +179,6 @@ private:
         std::normal_distribution<double> rot_noise(0.0, odom_rot_noise_);
 
         for (auto& p : particles_) {
-            // Apply the noisy local motion to each particle's pose in the map frame.
-            // The local motion (noisy_delta_x_local, noisy_delta_y_local) needs to be rotated
-            // by the particle's current orientation (p.theta) to be added to its global map coordinates.
             double noisy_delta_x_local = delta_x_local + trans_noise_x(random_engine_);
             double noisy_delta_y_local = delta_y_local + trans_noise_y(random_engine_);
             double noisy_delta_theta_local = delta_theta_local + rot_noise(random_engine_);
@@ -327,8 +324,6 @@ private:
         }
 
         // Calculate Effective Number of Particles (Neff)
-        // Neff indicates the diversity of the particle set. Low Neff means most weight is concentrated
-        // in a few particles, indicating potential loss of diversity or localization.
         double sum_sq_weights = 0.0;
         for (const auto& p : particles_) {
             sum_sq_weights += std::pow(p.weight, 2);
