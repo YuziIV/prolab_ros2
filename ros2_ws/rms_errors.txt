@@ -1,3 +1,0 @@
-RMS Error (KF vs GT): 13.009925 m
-RMS Error (EKF vs GT): 0.216530 m
-RMS Error (PF vs GT): 0.567027 m
