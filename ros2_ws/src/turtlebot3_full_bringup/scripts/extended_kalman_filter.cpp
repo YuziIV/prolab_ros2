@@ -49,10 +49,6 @@ void FilterNode::predict(double dt, const nav_msgs::msg::Odometry::ConstSharedPt
     double linear_x_odom = odom_msg->twist.twist.linear.x;
     double linear_y_odom = odom_msg->twist.twist.linear.y;
     double angular_z_odom = odom_msg->twist.twist.angular.z;
-
-    // Current state variables
-    double x = mu_(0);
-    double y = mu_(1);
     double theta = mu_(2);
 
     // --- Non-linear motion model (f(mu, u)) ---
