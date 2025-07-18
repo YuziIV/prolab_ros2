@@ -58,20 +58,6 @@ RMS error of each filter (vs. ground truth in kidnapped scenario):
 
 See `rms_errors_kidnapped.txt` for details.
 
-## Project Structure
-
-```bash
-ros2_ws/
-├── src/
-│   └── turtlebot3_full_bringup/
-│       ├── launch/                # Launch files
-│       ├── maps/                  # Map and YAMLs
-│       ├── scripts/               # Filter and navigation nodes
-│       ├── rviz/                  # RViz config
-│       └── worlds/                # Gazebo world
-├── install/, build/, log/         # Ignored ROS 2 build artifacts
-```
-
 ## Filters Implementation
 
 Each filter is implemented in C++ with:
